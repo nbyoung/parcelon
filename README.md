@@ -1,8 +1,6 @@
 # Parcelon
 
-The _Parcelon_ convention brings object-based programming to C using the _Parcel_ encapsulation language. It formalises the separation of an abstract _interface_ from its concrete _state_ and _method_ implementations, enabling polymorphic source components expressible entirely in standard C without a run-time library.
-
-For an introduction to the Parcel language, see [Parcel](https://github.com/nbyoung/parcel). For the full semantics of the generated export and import files, see [SEMANTICS.md](https://github.com/nbyoung/parcel/blob/main/SEMANTICS.md).
+The _Parcelon_ convention brings object-based programming to C using the [_Parcel_](https://github.com/nbyoung/parcel) encapsulation language. It formalises the separation of an abstract _interface_ from its concrete _state_ and _method_ implementations, enabling polymorphic source components expressible entirely in standard C without a run-time library.
 
 ## Overview
 
@@ -46,7 +44,7 @@ static int    init    (<Name> *self) { ... }
 static <R>    <impl_method>(<Name> *self, <params>) { ... }
 static int    fini    (<Name> *self) { ... }
 
-const <stem>_<IName> <name> = {
+const <stem>_<InterfaceName> <name> = {
     .init     = (int    (*)(void *))           init,
     .<method> = (<R>    (*)(void *, <params>)) <impl_method>,
     .fini     = (int    (*)(void *))           fini,
@@ -157,12 +155,124 @@ _parcel/import/<path>/<impl>.<stem>:
     const struct <canonical> *<stem> = &<canonical>;
 ```
 
-The import file applies _type specifier expansion_ (see [SEMANTICS.md](SEMANTICS.md)) to replace `<stem>_<Name>` with the expanded anonymous struct, making the import file self-contained with no dependency on the object parcel's import.
+The import file applies _type specifier expansion_ (see [SEMANTICS.md](https://github.com/nbyoung/parcel/blob/main/SEMANTICS.md)) to replace `<stem>_<InterfaceName>` with the expanded anonymous struct, making the import file self-contained with no dependency on the object parcel's import.
 
 ## Example
 
-`examples/helloo_woorld/` demonstrates a single-character output object type with a `stdout` implementation.
+`examples/hello_world/` demonstrates the `Output` object type with `stdout` and `null` implementations.
 
-- `output.c` — declares `Output` (`init`, `output`, `fini`)
-- `output/stdout.c` — implements `Output` as `Stdout` backed by C standard I/O
-- `main.c` — writes `"Hello, world!\n"` through the `stdout` implementation
+`output.c` declares the `Output` interface — `init`, `output`, and `fini` — as the default parcel (`_`):
+
+```c
+#pragma parcel _ { Output }
+
+typedef struct {
+    int (*init)  (void *self);
+    int (*output)(void *self, char *greeting);
+    int (*fini)  (void *self);
+} Output;
+
+#include "export/output/_"
+```
+
+`output/stdout.c` implements `Output` as `Stdout`, backed by C standard I/O. It imports the interface with stem `out`, declares the concrete state struct, and exports the state typedef and method table instance together:
+
+```c
+#include <stdio.h>
+#include "import/output/_.out"
+
+#pragma parcel stdout { Stdout output }
+
+typedef struct {
+} Stdout;
+
+static int init(Stdout *self) {
+    (void)self;
+    return 1;
+}
+
+static int print(Stdout *self, char *greeting) {
+    (void)self;
+    return fputs(greeting, stdout) != EOF;
+}
+
+static int fini(Stdout *self) {
+    (void)self;
+    return fflush(stdout) != EOF;
+}
+
+const out_Output output = {
+    .init   = (int (*)(void *))         init,
+    .output = (int (*)(void *, char *)) print,
+    .fini   = (int (*)(void *))         fini,
+};
+
+#include "export/output/stdout"
+```
+
+`output/null.c` exports an identically shaped parcel with bodies that do nothing — a valid substitute that requires no changes at the call sites:
+
+```c
+#include "import/output/_.out"
+
+#pragma parcel null { Null output }
+
+typedef struct {
+} Null;
+
+static int init(Null *self) {
+    (void)self;
+    return 1;
+}
+
+static int discard(Null *self, char *greeting) {
+    (void)self;
+    (void)greeting;
+    return 1;
+}
+
+static int fini(Null *self) {
+    (void)self;
+    return 1;
+}
+
+const out_Output output = {
+    .init   = (int (*)(void *))         init,
+    .output = (int (*)(void *, char *)) discard,
+    .fini   = (int (*)(void *))         fini,
+};
+
+#include "export/output/null"
+```
+
+`output.h` is a selector header that conditionally imports one implementation and defines `OUT` and `OUT_STATE`:
+
+```c
+#include "import/output/_.out"
+
+#if defined(OUTPUT_NULL)
+#include "import/output/null.null"
+#define OUT       null
+#define OUT_STATE null_Null
+#else
+#include "import/output/stdout.std"
+#define OUT       std
+#define OUT_STATE std_Stdout
+#endif
+```
+
+`main.c` includes the selector and dispatches through `OUT`, naming neither the implementation nor its stem directly:
+
+```c
+#include "output.h"
+
+int main(void) {
+    OUT_STATE state;
+    OUT->output->init(&state);
+    OUT->output->output(&state, "Hello, world!\n");
+    OUT->output->fini(&state);
+    return 0;
+}
+```
+
+Passing `-DOUTPUT_NULL` selects the `null` implementation; omitting it selects `stdout`. `main.c` is unchanged in either case.
