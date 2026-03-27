@@ -1,0 +1,3 @@
+struct output_null {
+    const out_Output * const output;
+} const output_null = { &output };

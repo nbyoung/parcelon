@@ -1,0 +1,12 @@
+typedef struct {
+} null_Null;
+
+struct output_null {
+    const struct {
+        int (*init)  (void *self);
+        int (*output)(void *self, char *greeting);
+        int (*fini)  (void *self);
+    } * const output;
+};
+extern const struct output_null output_null;
+const struct output_null *null = &output_null;

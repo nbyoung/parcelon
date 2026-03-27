@@ -1,0 +1,12 @@
+typedef struct {
+} std_Stdout;
+
+struct output_stdout {
+    const struct {
+        int (*init)  (void *self);
+        int (*output)(void *self, char *greeting);
+        int (*fini)  (void *self);
+    } * const output;
+};
+extern const struct output_stdout output_stdout;
+const struct output_stdout *std = &output_stdout;

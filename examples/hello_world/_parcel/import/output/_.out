@@ -1,0 +1,5 @@
+typedef struct {
+    int (*init)  (void *self);
+    int (*output)(void *self, char *greeting);
+    int (*fini)  (void *self);
+} out_Output;
