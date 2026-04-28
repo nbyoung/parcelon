@@ -16,14 +16,14 @@ A caller imports an implement parcel and dispatches methods by dereferencing the
 An object file exports a single typedef naming the method table struct. The parcel name is conventionally `_`, indicating the one interface defined at this path.
 
 ```c
-#pragma parcel _ { <Name> }
-
 typedef struct {
     int (*init)    (void *self);
     <R> (*<method>)(void *self, <params>);
     int (*fini)    (void *self);
 } <Name>;
 
+#pragma  parcel _
+#pragma      typedef: <Name>
 #include "export/<path>/_"
 ```
 
@@ -35,8 +35,6 @@ An implement file imports the object parcel with a chosen stem, defines the stat
 
 ```c
 #include "import/<path>/_.<stem>"
-
-#pragma parcel <impl> { <Name> <name> }
 
 typedef struct { <fields> } <Name>;
 
@@ -50,6 +48,9 @@ const <stem>_<InterfaceName> <name> = {
     .fini     = (int    (*)(void *))           fini,
 };
 
+#pragma  parcel <impl>
+#pragma      typedef: <Name>
+#pragma      constant: <name>
 #include "export/<path>/<impl>"
 ```
 
@@ -164,14 +165,14 @@ The import file applies _type specifier expansion_ (see [SEMANTICS.md](https://g
 `output.c` declares the `Output` interface — `init`, `output`, and `fini` — as the default parcel (`_`):
 
 ```c
-#pragma parcel _ { Output }
-
 typedef struct {
     int (*init)  (void *self);
     int (*output)(void *self, char *greeting);
     int (*fini)  (void *self);
 } Output;
 
+#pragma  parcel _
+#pragma      typedef: Output
 #include "export/output/_"
 ```
 
@@ -180,8 +181,6 @@ typedef struct {
 ```c
 #include <stdio.h>
 #include "import/output/_.out"
-
-#pragma parcel stdout { Stdout output }
 
 typedef struct {
 } Stdout;
@@ -207,6 +206,9 @@ const out_Output output = {
     .fini   = (int (*)(void *))         fini,
 };
 
+#pragma  parcel stdout
+#pragma      typedef: Stdout
+#pragma      constant: output
 #include "export/output/stdout"
 ```
 
@@ -214,8 +216,6 @@ const out_Output output = {
 
 ```c
 #include "import/output/_.out"
-
-#pragma parcel null { Null output }
 
 typedef struct {
 } Null;
@@ -242,6 +242,9 @@ const out_Output output = {
     .fini   = (int (*)(void *))         fini,
 };
 
+#pragma  parcel null
+#pragma      typedef: Null
+#pragma      constant: output
 #include "export/output/null"
 ```
 

@@ -1,7 +1,5 @@
 #include "import/output/_.out"
 
-#pragma parcel null { Null output }
-
 typedef struct {
 } Null;
 
@@ -27,4 +25,7 @@ const out_Output output = {
     .fini   = (int (*)(void *))         fini,
 };
 
+#pragma  parcel null
+#pragma      typedef: Null
+#pragma      constant: output
 #include "export/output/null"

@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include "import/output/_.out"
 
-#pragma parcel stdout { Stdout output }
-
 typedef struct {
 } Stdout;
 
@@ -27,4 +25,7 @@ const out_Output output = {
     .fini   = (int (*)(void *))         fini,
 };
 
+#pragma  parcel stdout
+#pragma      typedef: Stdout
+#pragma      constant: output
 #include "export/output/stdout"
